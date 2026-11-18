@@ -30,7 +30,8 @@ Not tested: click-to-fly autopilot landing, real touch devices, Safari/Firefox.
   The land prompt is now a button (tap/click to land) and wraps on phones.
 
 ## To do
-1. Josh to confirm the Uganda text: was the six months in Africa in Uganda?
+1. Résumé PDF link: the 2026 PDF names the clearance, clients, an equity percentage and defense
+   program names, and has unfilled placeholders. Waiting on Josh to choose a public version.
 2. Split `index.html` into `css/`, `js/hub.js`, `js/arm.js`, etc. once it grows.
 3. Keyboard control of the arm; optionally add the ~3 cm horizontal shoulder offset to `fk()`/`ik()`.
 4. Add a résumé PDF download link on the Service Record page (needs the PDF from Josh).
