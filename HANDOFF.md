@@ -30,8 +30,9 @@ Not tested: click-to-fly autopilot landing, real touch devices, Safari/Firefox.
   The land prompt is now a button (tap/click to land) and wraps on phones.
 
 ## To do
-1. Résumé PDF link: the 2026 PDF names the clearance, clients, an equity percentage and defense
-   program names, and has unfilled placeholders. Waiting on Josh to choose a public version.
+1. (Done) Résumé: `joshua-johnson-resume.pdf` is a copy of "Joshua Johnson Resume 2026c.pdf",
+   published with Josh's explicit approval (it includes clearance, client and program names).
+   Linked from the Service Record page. To update, replace the file and keep the name.
 2. Split `index.html` into `css/`, `js/hub.js`, `js/arm.js`, etc. once it grows.
 3. Keyboard control of the arm; optionally add the ~3 cm horizontal shoulder offset to `fk()`/`ik()`.
 4. Add a résumé PDF download link on the Service Record page (needs the PDF from Josh).
