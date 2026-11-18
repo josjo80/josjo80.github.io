@@ -20,16 +20,23 @@ Not tested: click-to-fly autopilot landing, real touch devices, Safari/Firefox.
 - Coffee toy: `cupStir()`, `cupMeasure()` (coarse-grained entropy and structure proxy).
 - `dealInit()` sell-vs-keep calculator. `photosInit()` loads `photos/uganda-1.jpg` … `-5.jpg`.
 
+## Done (2026-11-18)
+- Repo `josjo80/josjo80.github.io` is public; Pages serves `main` at https://josjo80.github.io/.
+- Five Uganda photos processed to `photos/uganda-1..5.jpg` (1600px, EXIF/GPS stripped), with alt text.
+  Raw originals stay local (ignored by `.gitignore`).
+- Arm link lengths now come from the official URDF (TheRobotStudio/SO-ARM100,
+  `Simulation/SO101/so101_new_calib.urdf`); the LeRobot fork has no URDF.
+- Autopilot landing tested headless at 1280px and 390px: all nine worlds land in 3–6 s.
+  The land prompt is now a button (tap/click to land) and wraps on phones.
+
 ## To do
-1. Create repo `josjo80/josjo80.github.io` (public), commit, enable GitHub Pages from main.
-2. Add 5 Uganda photos as `photos/uganda-N.jpg` (resize to ~1600px wide, strip EXIF/GPS).
-   Josh to pick the photos and confirm the text: was the six months in Africa in Uganda?
-3. Split `index.html` into `css/`, `js/hub.js`, `js/arm.js`, etc. once it grows.
-4. Replace approximate arm link lengths (`L` object) with real SO-101 dimensions from
-   `josjo80/lerobot-so101`; consider keyboard control of the arm.
-5. Add a résumé PDF download link on the Service Record page.
-6. Test autopilot landing and touch; add on-screen thrust/turn buttons for phones if needed.
-7. Optional: sound toggle, more per-world interactivity (prusik sim embed, print animation).
+1. Josh to confirm the Uganda text: was the six months in Africa in Uganda?
+2. Split `index.html` into `css/`, `js/hub.js`, `js/arm.js`, etc. once it grows.
+3. Keyboard control of the arm; optionally add the ~3 cm horizontal shoulder offset to `fk()`/`ik()`.
+4. Add a résumé PDF download link on the Service Record page (needs the PDF from Josh).
+5. Test on a real phone and in Safari/Firefox. Manual thrust/turn buttons look unnecessary
+   (tap-to-fly plus the tappable land prompt cover it), but confirm on a device.
+6. Optional: sound toggle, more per-world interactivity (prusik sim embed, print animation).
 
 ## Content rules Josh has set or accepted
 - Public site. No dollar figures or ownership percentages. No kids' names.
