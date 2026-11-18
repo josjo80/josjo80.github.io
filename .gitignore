@@ -1,0 +1,4 @@
+.DS_Store
+# raw photos stay local; only processed photos/uganda-N.jpg are published
+photos/*
+!photos/uganda-*.jpg

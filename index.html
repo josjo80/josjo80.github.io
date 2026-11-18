@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Josh Johnson — fly the map</title>
+<meta name="description" content="Josh Johnson: engineer, builder, writer. Fly a small ship between worlds to see the work.">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:#050914;color:#e8f4ff;font:16px/1.5 ui-monospace,Menlo,Consolas,"Courier New",monospace}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #ffb347;outline-offset:3px}
+[hidden]{display:none!important}
+
+/* ---------- hub ---------- */
+#hub{position:fixed;inset:0;overflow:hidden}
+#space{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:absolute;color:#7fe7ff;text-shadow:0 0 8px rgba(127,231,255,.6)}
+#ident{left:20px;top:16px}
+#ident h1{margin:0;font-size:1.35rem;letter-spacing:.04em;font-weight:700}
+#ident p{margin:2px 0 0;font-size:.85rem;color:#b9dcea}
+#prompt{left:50%;bottom:74px;transform:translateX(-50%);padding:10px 18px;border:1px solid #ffb347;color:#ffb347;
+  background:rgba(5,9,20,.8);text-shadow:0 0 8px rgba(255,179,71,.6);white-space:nowrap}
+#keys{left:20px;bottom:16px;font-size:.8rem;color:#8fb8c8;max-width:60vw}
+#nav{right:16px;top:16px;width:230px;background:rgba(5,9,20,.78);border:1px solid rgba(127,231,255,.45);padding:10px}
+#nav h2{margin:0 0 6px;font-size:.8rem;font-weight:400;color:#b9dcea}
+#nav ul{list-style:none;margin:0;padding:0}
+#nav button{display:flex;justify-content:space-between;width:100%;background:none;border:0;color:#7fe7ff;padding:5px 4px;text-align:left}
+#nav button:hover{background:rgba(127,231,255,.14)}
+#nav .seen{color:#ffb347}
+#tally{margin:8px 0 0;font-size:.78rem;color:#b9dcea}
+#brief{position:absolute;inset:0;display:grid;place-items:center;background:rgba(5,9,20,.72);padding:20px}
+#brief div{max-width:560px;border:1px solid #7fe7ff;padding:28px 30px;background:#050914;box-shadow:0 0 40px rgba(127,231,255,.25)}
+#brief h2{margin:0 0 10px;font-size:1.9rem;line-height:1.15;color:#7fe7ff}
+#brief p{margin:0 0 14px;color:#cfe6f2}
+#brief button{background:#ffb347;color:#050914;border:0;padding:12px 22px;font-weight:700}
+@media (max-width:720px){
+  #nav{top:auto;bottom:0;right:0;left:0;width:auto;padding:6px}
+  #nav h2,#tally{display:none}
+  #nav ul{display:flex;overflow-x:auto;gap:4px}
+  #nav button{white-space:nowrap;border:1px solid rgba(127,231,255,.45);padding:6px 10px;gap:6px}
+  #keys{display:none}#prompt{bottom:64px}
+}
+
+/* ---------- worlds: shared ---------- */
+.world{min-height:100%;padding:84px 24px 80px}
+.world .wrap{max-width:900px;margin:0 auto}
+.world h1{margin:0 0 .3em;line-height:1.05}
+.world h2{margin:1.8em 0 .4em;line-height:1.2}
+.world p,.world li{max-width:68ch}
+.launch{position:fixed;top:16px;left:16px;z-index:5;padding:9px 16px;border:2px solid currentColor;background:var(--lb,#fff);color:var(--lc,#000);font-weight:700}
+.world a{color:inherit}
+
+/* service record: a personnel form */
+body[data-w=record]{background:#e4e8dc}
+.w-record{color:#1d2a24;font-family:"Avenir Next",Futura,"Trebuchet MS",sans-serif;--lb:#e4e8dc;--lc:#1d2a24}
+.w-record .wrap{background:#f4f6ee;border:2px solid #1d2a24;padding:36px 40px;position:relative}
+.w-record h1{font-size:2.6rem;letter-spacing:-.01em}
+.w-record .stamp{position:absolute;right:28px;top:30px;border:3px solid #b3261e;color:#b3261e;padding:4px 12px;transform:rotate(7deg);font-weight:700;font-size:.9rem}
+.w-record h2{font-size:1rem;border-bottom:2px solid #1d2a24;padding-bottom:4px}
+.w-record .job{display:grid;grid-template-columns:120px 1fr;gap:6px 20px;padding:14px 0;border-bottom:1px solid #b9c1ae}
+.w-record .job time{font-variant-numeric:tabular-nums;font-weight:700}
+.w-record .job h3{margin:0;font-size:1.1rem}
+.w-record .job ul{margin:6px 0 0;padding-left:1.1em}
+.w-record dl{display:grid;grid-template-columns:150px 1fr;gap:6px 20px;margin:0}
+.w-record dt{font-weight:700}.w-record dd{margin:0}
+@media (max-width:600px){.w-record .job,.w-record dl{grid-template-columns:1fr}.w-record .wrap{padding:24px 18px}.w-record .stamp{position:static;display:inline-block;margin-bottom:10px}}
+
+/* robotics lab: bench with safety orange */
+body[data-w=robotics]{background:#10151c}
+.w-robotics{color:#eef2f5;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;--lb:#ff7a1a;--lc:#10151c}
+.w-robotics h1{font-size:clamp(2.4rem,7vw,4.6rem);font-weight:800;letter-spacing:-.03em}
+.w-robotics h1,.w-robotics h2{color:#ff7a1a}
+.bench{display:grid;grid-template-columns:1fr 250px;gap:18px;margin:22px 0}
+#arm{width:100%;height:440px;background:#0a0e13;border:1px solid #2c3743;cursor:grab;touch-action:none;display:block}
+.ctl label{display:block;font-size:.85rem;margin-bottom:9px}
+.ctl output{float:right;font-variant-numeric:tabular-nums;color:#ff7a1a}
+.ctl input{width:100%;accent-color:#ff7a1a}
+.ctl button{width:100%;padding:10px;margin-top:6px;background:#ff7a1a;border:0;color:#10151c;font-weight:700}
+.ctl button.alt{background:none;border:1px solid #5b6976;color:#eef2f5}
+@media (max-width:760px){.bench{grid-template-columns:1fr}#arm{height:340px}}
+
+/* research archive: a preprint */
+body[data-w=research]{background:#fff}
+.w-research{color:#111;font-family:"Latin Modern Roman","CMU Serif","Times New Roman",Times,serif;font-size:1.08rem;line-height:1.6;--lb:#fff;--lc:#111}
+.w-research .wrap{max-width:760px}
+.w-research h1{font-size:2rem;text-align:center;font-weight:400}
+.w-research .by{text-align:center;margin:0 auto 1.6em}
+.w-research .abs{margin:0 8%;font-size:.98rem}
+.w-research h2{font-size:1.2rem}
+.w-research .cols{columns:2 300px;column-gap:34px;text-align:justify;hyphens:auto}
+.w-research .cols h2{margin-top:0;break-after:avoid}
+.w-research .cols section{break-inside:avoid;margin-bottom:1.4em}
+.w-research .eq{text-align:center;font-style:italic;margin:.8em 0}
+
+/* alchemical ai: gold on aubergine */
+body[data-w=alchemy]{background:#1c1024}
+.w-alchemy{color:#efe6d2;font-family:Optima,Candara,"Gill Sans",sans-serif;--lb:#e3b341;--lc:#1c1024}
+.w-alchemy h1{font-family:Didot,"Bodoni MT","Playfair Display",Georgia,serif;font-size:clamp(2.6rem,8vw,5rem);font-weight:400;color:#e3b341}
+.w-alchemy h2{font-family:Didot,"Bodoni MT",Georgia,serif;font-weight:400;font-size:1.9rem;color:#e3b341;margin-top:0}
+.w-alchemy .work{display:grid;grid-template-columns:90px 1fr;gap:22px;padding:30px 0;border-top:1px solid rgba(227,179,65,.4)}
+.w-alchemy svg{width:80px;height:80px;stroke:#e3b341;fill:none;stroke-width:2}
+.w-alchemy .eq{color:#e3b341;font-style:italic}
+@media (max-width:560px){.w-alchemy .work{grid-template-columns:1fr}}
+
+/* workshop: blueprint */
+body[data-w=workshop]{background:#1b4b86}
+.w-workshop{color:#f2f7ff;font-family:"Courier New",Courier,monospace;--lb:#1b4b86;--lc:#f2f7ff;
+  background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-size:24px 24px}
+.w-workshop h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:400}
+.w-workshop .sheet{border:2px solid #f2f7ff;background:rgba(27,75,134,.86);padding:20px 22px;margin:22px 0;position:relative}
+.w-workshop .sheet h2{margin:0 0 6px;font-size:1.3rem}
+.w-workshop .sheet .tb{position:absolute;right:-2px;bottom:-2px;border:2px solid #f2f7ff;padding:2px 10px;font-size:.78rem;background:#1b4b86}
+#print{width:100%;height:150px;display:block;margin-top:10px}
+
+/* library: sun on indigo */
+body[data-w=library]{background:#f6c21c}
+.w-library{color:#1b1b3a;font-family:"Iowan Old Style",Palatino,"Palatino Linotype","Book Antiqua",serif;font-size:1.12rem;line-height:1.65;--lb:#1b1b3a;--lc:#f6c21c}
+.w-library h1{font-size:clamp(3rem,11vw,7rem);font-style:italic;font-weight:400;letter-spacing:-.02em}
+.w-library h2{font-size:1.6rem;font-style:italic;font-weight:400}
+.w-library .toy{background:#1b1b3a;color:#f6c21c;padding:18px;margin:18px 0;display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.w-library canvas{image-rendering:pixelated;background:#000;display:block}
+#cup{width:192px;height:128px}#plot{width:100%;height:128px}
+.w-library .toy button{grid-column:1/-1;justify-self:start;background:#f6c21c;color:#1b1b3a;border:0;padding:8px 16px;font-weight:700}
+.w-library .toy p{grid-column:1/-1;margin:0;font-size:.92rem}
+@media (max-width:560px){.w-library .toy{grid-template-columns:1fr}}
+
+/* uganda: red earth and leaf green */
+body[data-w=uganda]{background:#143d2a}
+.w-uganda{color:#fbf3e4;font-family:"Gill Sans","Gill Sans MT",Calibri,sans-serif;font-size:1.1rem;--lb:#fbf3e4;--lc:#143d2a}
+.w-uganda h1{font-size:clamp(3.4rem,14vw,9rem);font-weight:700;letter-spacing:-.04em;color:#e9a13b;line-height:.9}
+.w-uganda blockquote{margin:28px 0;padding:22px 26px;background:#a4431f;font-size:1.5rem;line-height:1.3}
+.w-uganda .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px 0}
+.w-uganda figure{margin:0;aspect-ratio:4/3;background:repeating-linear-gradient(45deg,#1d5239 0 14px,#19482f 14px 28px);display:grid;place-items:center;overflow:hidden;font-size:.85rem;color:#b9d3c2}
+.w-uganda figure:first-child{grid-column:span 2;grid-row:span 2}
+.w-uganda img{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:560px){.w-uganda .photos{grid-template-columns:1fr 1fr}}
+
+/* deal room: green-bar ledger paper */
+body[data-w=deals]{background:#f7f9f3}
+.w-deals{color:#14301f;font-family:"American Typewriter","Courier Prime",Rockwell,"Courier New",serif;--lb:#14301f;--lc:#f7f9f3;
+  background-image:repeating-linear-gradient(#f7f9f3 0 56px,#d9ecd3 56px 112px)}
+.w-deals h1{font-size:clamp(2.6rem,8vw,5rem);letter-spacing:-.02em}
+.w-deals h2{font-size:1.35rem;border-bottom:2px dotted #14301f;padding-bottom:4px}
+.w-deals .calc{border:2px solid #14301f;background:#fff;padding:20px 22px;margin:20px 0;max-width:640px}
+.w-deals .calc label{display:block;margin-bottom:12px}
+.w-deals .calc input{width:100%;accent-color:#14301f}
+.w-deals .calc output{float:right;font-weight:700}
+.w-deals .bars div{height:26px;background:#14301f;color:#fff;padding:2px 8px;margin:6px 0;white-space:nowrap;font-size:.9rem;min-width:max-content}
+.w-deals .bars div.full{background:#7c9a86}
+.w-deals small{display:block;margin-top:10px}
+
+/* off duty: 8-bit */
+body[data-w=offduty]{background:#000}
+.w-offduty{color:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;--lb:#ffd60a;--lc:#000}
+.w-offduty h1{font-size:clamp(2.2rem,8vw,4.4rem);color:#ffd60a;text-shadow:4px 4px 0 #e63946}
+.w-offduty .inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:22px;margin-top:26px}
+.w-offduty .slot{padding:16px;background:#111;box-shadow:0 0 0 4px #000,0 0 0 8px var(--c)}
+.w-offduty .slot h2{margin:0 0 6px;color:var(--c);font-size:1.15rem}
+.w-offduty .slot p{margin:0;font-weight:400;font-size:.95rem}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="hub">
+  <canvas id="space" aria-label="Star map. Fly the ship to a world and land to open its page. The list of worlds is also available as buttons."></canvas>
+  <div class="hud" id="ident"><h1>Josh Johnson</h1><p>Engineer, builder, writer. Superior, Colorado.</p></div>
+  <div class="hud" id="prompt" hidden></div>
+  <div class="hud" id="keys">Arrow keys or WASD to fly. Enter to land. Or click a world and the ship flies itself.</div>
+  <nav class="hud" id="nav" aria-label="Worlds"><h2>Jump straight to a world</h2><ul id="navlist"></ul><p id="tally"></p></nav>
+  <div id="brief"><div>
+    <h2>Nine worlds, one pilot.</h2>
+    <p>Each world on this map is a part of my life: the résumé, the robot arm on my desk, the things I build, the books I'm writing, and the places that changed me. Every one looks different when you land.</p>
+    <p>Fly with the arrow keys or WASD and press Enter to land. On a phone, tap a world.</p>
+    <button id="start">Start flying</button>
+  </div></div>
+</div>
+
+<!-- ================= SERVICE RECORD ================= -->
+<section class="world w-record" id="w-record" hidden><button class="launch">Back to space</button><div class="wrap">
+  <span class="stamp">Cleared for release</span>
+  <h1>Joshua Johnson</h1>
+  <p>Twenty-plus years of engineering across Air Force research, medical devices, defense machine learning and independent AI work. I like hard problems that end in a working thing.</p>
+  <h2>Experience</h2>
+  <div class="job"><time>2025–now</time><div><h3>Founder, Alchemical AI</h3>
+    <ul><li>AI consulting and software for operating businesses in construction, real estate and healthcare.</li>
+    <li>Ship production tools: bid automation from blueprints, voice agents, and healthcare data pipelines.</li></ul></div></div>
+  <div class="job"><time>2019–2025</time><div><h3>Lead ML/AI Engineer, Black River Technologies</h3>
+    <ul><li>Built detection, classification and tracking for EO/IR camera feeds (YOLO, ByteTrack, OC-SORT), with MLflow and DVC behind it.</li>
+    <li>Deployed a real-time vision-language system for ship detection and tracking in the Panama Canal.</li>
+    <li>Designed an online learning system for passive sonar using variational autoencoders and vector similarity search.</li>
+    <li>Built a CNN-LSTM spectrogram classifier for RF modulation detection.</li>
+    <li>Led RAG and Graph-RAG chat systems and multi-tool agents; worked on counter-UAS detection, synthetic data and reinforcement learning.</li>
+    <li>Wrote SBIR and BAA proposals in drone autonomy and sonar detection.</li></ul></div></div>
+  <div class="job"><time>2010–2018</time><div><h3>Engineering Manager and RF Design Engineer, Medtronic</h3>
+    <ul><li>Designed RF surgical devices as a senior electrical hardware engineer and took them through FDA compliance.</li>
+    <li>Managed multidisciplinary engineering teams.</li></ul></div></div>
+  <div class="job"><time>2004–2008</time><div><h3>Technology Development Program Manager, Air Force Research Laboratory</h3>
+    <ul><li>U.S. Air Force. Ran programs building lightweight mobile power systems for Air Force Special Operations Command.</li></ul></div></div>
+  <h2>Education</h2>
+  <dl><dt>2008–2009</dt><dd>M.S. Electrical Engineering, University of Colorado Boulder</dd>
+      <dt>1999–2004</dt><dd>B.S. Electrical Engineering, Cedarville University</dd></dl>
+  <h2>Skills</h2>
+  <dl><dt>Machine learning</dt><dd>LLMs, vision-language and vision-language-action models, RAG, VAEs, object detection and tracking, reinforcement learning, synthetic data</dd>
+      <dt>Agents</dt><dd>Multi-step tool-using agents, MCP servers, voice agents, LangChain, LlamaIndex</dd>
+      <dt>Software</dt><dd>Python, PyTorch, TensorFlow, Docker, Kubernetes, MLflow, DVC, FAISS, pgvector, FastAPI</dd>
+      <dt>Hardware</dt><dd>RF systems, medical devices, EO/IR camera integration, power systems, Onshape CAD, 3D printing</dd>
+      <dt>Leading</dt><dd>Team and program management, proposals, product requirements. Certified Scrum Master.</dd></dl>
+  <h2>Find me</h2>
+  <dl><dt>Email</dt><dd><a href="mailto:joshuahjohnson@gmail.com">joshuahjohnson@gmail.com</a></dd><dt>Phone</dt><dd><a href="tel:+19372382524">937-238-2524</a></dd><dt>LinkedIn</dt><dd><a href="https://www.linkedin.com/in/joshjohnsonlinkd/">linkedin.com/in/joshjohnsonlinkd</a></dd><dt>GitHub</dt><dd><a href="https://github.com/josjo80">github.com/josjo80</a></dd></dl>
+</div></section>
+
+<!-- ================= ROBOTICS ================= -->
+<section class="world w-robotics" id="w-robotics" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>Move the arm.</h1>
+  <p>There is a LeRobot SO-101 on my desk: a small, cheap, open-source arm that thousands of people own, which means anything I learn on it someone else can reproduce. This is a simplified model of it. Drag the sliders, drag the view to look around, or let it run a pick and place.</p>
+  <div class="bench">
+    <canvas id="arm" aria-label="Simplified 3D model of an SO-101 robot arm"></canvas>
+    <div class="ctl" id="armctl">
+      <button id="demo">Run pick and place</button>
+      <button id="home" class="alt">Send home</button>
+    </div>
+  </div>
+  <h2>What I'm using it for</h2>
+  <p>Most of today's robot policies generate actions with a flow-matching head on top of a vision-language model. A recent method steers that head at inference time to make motion smoother, but it costs a second forward pass and uses one guidance strength everywhere, which can hurt precise moves.</p>
+  <p>My project tries to fix both: get the guidance signal almost for free, and turn it up only when the policy is uncertain. The plan is to prove it in simulation on the LIBERO benchmark with the open π0 model, then confirm it on this arm.</p>
+  <p><a href="https://github.com/josjo80/lerobot-so101">My SO-101 repo on GitHub</a></p>
+</div></section>
+
+<!-- ================= RESEARCH ================= -->
+<section class="world w-research" id="w-research" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>Notes from an Independent Research Bench</h1>
+  <p class="by">Joshua Johnson<br>Superior, Colorado</p>
+  <p class="abs"><b>Abstract.</b> I do machine learning research on my own time, with rented GPUs and no lab. That constraint picks the problems: I look for ideas where the contribution is in the method rather than in the size of the dataset or the cluster. Three threads are active.</p>
+  <h2>&nbsp;</h2>
+  <div class="cols">
+    <section><h2>1&ensp;A-CALM</h2>
+    <p>Language models predict one discrete token at a time. A-CALM, an anchored, adaptive-bandwidth continuous autoregressive language model, asks what happens if the model instead predicts a continuous vector that stands for a chunk of several tokens, and lets the amount of text per step vary. The work ran for months and produced a full PyTorch codebase, six rounds of written recommendations, and a draft journal paper.</p></section>
+    <section><h2>2&ensp;Chunk-amortized self-speculative decoding</h2>
+    <p>The current direction grew out of A-CALM. Speculative decoding speeds up generation by drafting cheaply and verifying with the full model. Here the model drafts for itself, a chunk at a time, so the cost of verification is spread over several tokens.</p>
+    <p class="eq">cost per token &asymp; (draft + verify) / accepted chunk length</p></section>
+    <section><h2>3&ensp;Cheap adaptive guidance for robot policies</h2>
+    <p>Inference-time guidance for the flow-based action heads used in vision-language-action models, tested with π0 on LIBERO. The robotics world on this map has a model of the arm it will end up on.</p></section>
+    <section><h2>4&ensp;How I work</h2>
+    <p>Reproduce the baseline before writing anything new. Decide in advance what result would count. Write down what failed. Most of this is done in conversation with AI coding tools, which is its own experiment.</p></section>
+  </div>
+</div></section>
+
+<!-- ================= ALCHEMY ================= -->
+<section class="world w-alchemy" id="w-alchemy" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>Alchemical AI</h1>
+  <p>My consulting practice. The old alchemists wanted to turn lead into gold. I take the slow, manual work inside ordinary businesses and turn it into software that does it in minutes.</p>
+  <div class="work"><svg viewBox="0 0 80 80"><path d="M40 8 72 66H8Z"/><path d="M22 44h36"/></svg><div>
+    <h2>BidForge</h2>
+    <p class="eq">Blueprints in, priced bid out.</p>
+    <p>Built with a Texas roofing and steel building contractor. It reads construction drawings, counts every beam, panel and fastener, prices them, and drafts the proposal. The goal is to cut a quote that used to take weeks down to under an hour.</p></div></div>
+  <div class="work"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="30"/><path d="M40 10v60M10 40h60"/></svg><div>
+    <h2>Kelly</h2>
+    <p class="eq">Missed calls in, booked showings out.</p>
+    <p>An AI receptionist for real estate agents. She answers the phone, knows the listings, books appointments and writes everything to the CRM. She runs on a multi-tenant platform that ties together calendar, CRM, property data, text messages and outbound voice campaigns.</p></div></div>
+  <div class="work"><svg viewBox="0 0 80 80"><path d="M40 72 8 14h64Z"/><path d="M22 36h36"/></svg><div>
+    <h2>Healthcare data automation</h2>
+    <p class="eq">Nightly records in, engagement tracking out.</p>
+    <p>A nightly pipeline for a Colorado healthcare quality nonprofit that pulls REDCap assessments into the tracker their team works from, written so their hospital partner's IT group could take it over.</p></div></div>
+</div></section>
+
+<!-- ================= WORKSHOP ================= -->
+<section class="world w-workshop" id="w-workshop" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>The workshop</h1>
+  <p>A 3D printer, a CAD account and too many ideas. These are the builds on the bench.</p>
+  <div class="sheet"><h2>Full-size astromech droid</h2>
+    <p>Printed part by part at full scale, with an 18-inch dome. The hard requirement is a hologram projector effect that looks right on camera.</p>
+    <canvas id="print" aria-label="Animation of a part printing layer by layer"></canvas><span class="tb">Sheet 1 of 5</span></div>
+  <div class="sheet"><h2>Nightstand with a space station inside</h2>
+    <p>A nightstand for my kid, modelled in Onshape, with a diorama built into it: a space-station surface, a small ship, an ultrasonic sensor, a servo and a wireless charger hidden under the deck. The figurines in it talk, and the plan is for them to help with homework.</p><span class="tb">Sheet 2 of 5</span></div>
+  <div class="sheet"><h2>Mechanical prusik simulator</h2>
+    <p>I climb, so I wanted to know whether a cam-based device could grab a rope the way a prusik knot does. I wrote a physics simulation in Matter.js to find out before cutting metal.</p><span class="tb">Sheet 3 of 5</span></div>
+  <div class="sheet"><h2>Metabolic Ledger</h2>
+    <p>A two-state Kalman filter that predicts body weight from food and activity logs, with a FastAPI and SQLite app for entering the data.</p><span class="tb">Sheet 4 of 5</span></div>
+  <div class="sheet"><h2>Geometric accent wall</h2>
+    <p>Poplar strips, a lot of angles, one bedroom wall.</p><span class="tb">Sheet 5 of 5</span></div>
+</div></section>
+
+<!-- ================= LIBRARY ================= -->
+<section class="world w-library" id="w-library" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>The Sun God</h1>
+  <p>A book I'm writing for general readers about a question that bothered me for years: if the universe always slides toward disorder, why is it full of stars, cells, brains and cities?</p>
+  <p>The short answer is that energy flowing from a hot place to a cold place can build things on the way through. The sun pours low-entropy light on the Earth, the Earth sheds heat to the night sky, and in between, order gets its chance. The book follows that thread from the first stars to the origin of life, the leap to complex cells, intelligence, civilization and AI.</p>
+  <h2>Try the coffee cup</h2>
+  <p>Pour cream on coffee. Disorder only ever goes up. But the interesting patterns show up in the middle, then vanish.</p>
+  <div class="toy"><canvas id="cup" width="96" height="64"></canvas><canvas id="plot" width="400" height="128"></canvas>
+    <button id="pour">Pour again</button>
+    <p>Upper line: how mixed the cup is. Lower line: a rough measure of visible structure, the number of places where neighbouring patches differ. This is a toy with random stirring, so the hump is modest.</p></div>
+  <h2>Also on the shelf</h2>
+  <p>A science fiction novel about a lottery whose prize is one message sent through time. The world is built, the outline is done, and two chapters are written.</p>
+  <p>After that, maybe a book on feedback: the idea behind thermostats, cruise control and most of what keeps you alive.</p>
+  <p><a href="https://github.com/josjo80/thesungod">The Sun God on GitHub</a></p>
+</div></section>
+
+<!-- ================= UGANDA ================= -->
+<section class="world w-uganda" id="w-uganda" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>Uganda</h1>
+  <p>My wife is a nurse who works in global health. Her work took our family of four to Africa for six months. I took a sabbatical, looked after the kids, and helped wherever an engineer was useful.</p>
+  <div class="photos" id="photos"></div>
+  <p>It wasn't the first time. After I left the Air Force we did global health work together in South America. Those trips are where I am most sure about what engineering is for.</p>
+  <blockquote>Decrease human suffering in the world through the use of my engineering skills and creativity.</blockquote>
+  <p>That is the mission I keep coming back to, and the direction I want the next chapter of my work to go.</p>
+</div></section>
+
+<!-- ================= DEAL ROOM ================= -->
+<section class="world w-deals" id="w-deals" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>The deal room</h1>
+  <p>I invest my own money in private companies and funds, and I do the analysis myself. It uses the same habits as engineering: build the model, test the assumptions, find out what breaks.</p>
+  <h2>Deal-making</h2>
+  <p>I am a partner and advisor in an environmental services business and a minority investor and advisor in a roofing and steel building contractor. In both I work with the owners on strategy, and in one I'm building the software that speeds up their bidding.</p>
+  <h2>Deal analysis</h2>
+  <p>When a company I'm a partner in explored a sale, I read the offering memorandum, studied the buyers, and modelled the offers side by side: a private equity buyout, an employee ownership plan, and a strategic buyer, each at different stake sizes. The answer that surprised people was that selling less could be worth more.</p>
+  <div class="calc">
+    <label>Share of the company sold today <output id="o-sold"></output><input type="range" id="sold" min="51" max="100" value="70"></label>
+    <label>What the kept share is worth in five years, against today <output id="o-grow"></output><input type="range" id="grow" min="0.5" max="3" step="0.1" value="1.8"></label>
+    <div class="bars"><div id="b-part"></div><div id="b-full" class="full">Sell everything today: 1.00× today's value</div></div>
+    <small>A deliberately simple picture: total value = share sold + share kept × growth. Real models add taxes, earn-outs, debt, control terms and the time value of money.</small>
+  </div>
+  <h2>Portfolio management</h2>
+  <p>I hold limited partner positions in venture and growth funds alongside public equities, alternatives and real estate. I look through every layer to see what I actually own, because the same bet can hide in four places at once. I run Monte Carlo projections and stress tests, track fund performance with MOIC, TVPI and public market equivalents, and model withdrawal strategies over thirty-year horizons.</p>
+  <h2>Macro, for fun</h2>
+  <p>I also replicate published research to see if it holds up, most recently a P-star model of inflation built on Divisia money aggregates.</p>
+  <p><a href="https://github.com/josjo80/pstar-monetarism">The replication on GitHub</a></p>
+</div></section>
+
+<!-- ================= OFF DUTY ================= -->
+<section class="world w-offduty" id="w-offduty" hidden><button class="launch">Back to space</button><div class="wrap">
+  <h1>Player inventory</h1>
+  <p>What I carry when I'm not at a keyboard.</p>
+  <div class="inv">
+    <div class="slot" style="--c:#e63946"><h2>Wrestling whistle</h2><p>I coach wrestling. It teaches kids to lose, get up, and shake hands, in that order.</p></div>
+    <div class="slot" style="--c:#4cc9f0"><h2>Barbell</h2><p>Weightlifting. The only project I have where progress is measured in plates.</p></div>
+    <div class="slot" style="--c:#80ed99"><h2>Chalk bag</h2><p>Climbing, in a state that makes it hard to have an excuse not to.</p></div>
+    <div class="slot" style="--c:#ffd60a"><h2>Deck of cards</h2><p>Live no-limit hold'em at small stakes. Applied probability with worse lighting.</p></div>
+    <div class="slot" style="--c:#f4a261"><h2>Whisk</h2><p>Baking at altitude, often gluten-free. Two constraints at once is just engineering.</p></div>
+    <div class="slot" style="--c:#c77dff"><h2>Stack of paperbacks</h2><p>Science fiction and fantasy. It's where the droid and the diorama came from.</p></div>
+  </div>
+</div></section>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var WORLDS=[
+ {id:'record',  name:'Service Record', sub:'Résumé',            x:-470,y:-250,r:46,c:'#c8d6b0',ring:0,moon:1},
+ {id:'robotics',name:'Robotics Lab',   sub:'Move the arm',      x: 460,y:-330,r:54,c:'#ff7a1a',ring:1,moon:0},
+ {id:'research',name:'Research Archive',sub:'ML research',      x: 900,y: 130,r:40,c:'#ffffff',ring:0,moon:0},
+ {id:'alchemy', name:'Alchemical AI',  sub:'Client work',       x:-860,y: 210,r:50,c:'#e3b341',ring:1,moon:1},
+ {id:'workshop',name:'The Workshop',   sub:'Things I build',    x: 320,y: 500,r:48,c:'#6aa5ff',ring:0,moon:1},
+ {id:'library', name:'The Library',    sub:'Books in progress', x:-330,y: 620,r:44,c:'#f6c21c',ring:0,moon:0},
+ {id:'uganda',  name:'Uganda',         sub:'Global health',     x:-1020,y:-520,r:52,c:'#4fbf7f',ring:0,moon:0},
+ {id:'deals',   name:'The Deal Room',  sub:'Private investing', x:  40,y:-660,r:44,c:'#b99cff',ring:1,moon:0},
+ {id:'offduty', name:'Off Duty',       sub:'Life outside work', x:1040,y:-600,r:38,c:'#ff5d73',ring:0,moon:1}
+];
+var byId={};WORLDS.forEach(function(w){byId[w.id]=w});
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ---------- visited ---------- */
+var seen={};
+try{seen=JSON.parse(localStorage.getItem('jj-seen')||'{}')||{}}catch(e){}
+function markSeen(id){seen[id]=1;try{localStorage.setItem('jj-seen',JSON.stringify(seen))}catch(e){}renderNav()}
+function renderNav(){
+  var ul=$('#navlist');ul.innerHTML='';
+  WORLDS.forEach(function(w){
+    var li=document.createElement('li'),b=document.createElement('button');
+    b.innerHTML='<span>'+w.name+'</span><span class="seen">'+(seen[w.id]?'✓':'')+'</span>';
+    b.onclick=function(){openWorld(w.id)};li.appendChild(b);ul.appendChild(li);
+  });
+  var n=WORLDS.filter(function(w){return seen[w.id]}).length;
+  $('#tally').textContent=n===WORLDS.length?'All '+WORLDS.length+' worlds visited. Thanks for flying.':n+' of '+WORLDS.length+' worlds visited';
+}
+
+/* ---------- hub game ---------- */
+var cv=$('#space'),g=cv.getContext('2d'),W=0,H=0,dpr=1;
+function size(){dpr=Math.min(2,window.devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr}
+window.addEventListener('resize',size);
+var ship={x:0,y:0,vx:0,vy:0,a:-Math.PI/2,thrust:false},keys={},auto=null,warp=0,warpTo=null,started=false,inWorld=null,near=null;
+var stars=[];for(var i=0;i<260;i++)stars.push({x:Math.random()*2000,y:Math.random()*2000,z:.2+Math.random()*.8});
+var rocks=[];for(i=0;i<14;i++)rocks.push({x:(Math.random()-.5)*2600,y:(Math.random()-.5)*1800,vx:(Math.random()-.5)*20,vy:(Math.random()-.5)*20,r:8+Math.random()*14,a:Math.random()*6,s:(Math.random()-.5)});
+
+window.addEventListener('keydown',function(e){
+  if(inWorld){if(e.key==='Escape')closeWorld();return}
+  var k=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(k)>=0)e.preventDefault();
+  if(e.target&&e.target.tagName==='BUTTON'&&(k==='enter'||k===' '))return;
+  keys[k]=true;auto=null;
+  if(!started&&(k==='enter'||k===' ')){start();return}
+  if((k==='enter'||k===' ')&&near)land(near.id);
+});
+window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false});
+cv.addEventListener('pointerdown',function(e){
+  if(!started)return;
+  var wx=ship.x+e.clientX-W/2,wy=ship.y+e.clientY-H/2,hit=null;
+  WORLDS.forEach(function(w){if(Math.hypot(wx-w.x,wy-w.y)<w.r+34)hit=w});
+  auto=hit?{x:hit.x,y:hit.y,world:hit}:{x:wx,y:wy,world:null};
+});
+function start(){started=true;$('#brief').hidden=true;cv.focus&&cv.focus()}
+$('#start').onclick=start;
+
+function land(id){if(warpTo)return;if(reduce){openWorld(id);return}warpTo=id;warp=0}
+function step(dt){
+  if(warpTo){warp+=dt;if(warp>.55){var id=warpTo;warpTo=null;warp=0;openWorld(id)}return}
+  var turn=0,th=false;
+  if(keys.arrowleft||keys.a)turn-=1;if(keys.arrowright||keys.d)turn+=1;
+  if(keys.arrowup||keys.w)th=true;
+  if(auto){
+    var dx=auto.x-ship.x,dy=auto.y-ship.y,d=Math.hypot(dx,dy),stop=auto.world?auto.world.r+30:12;
+    if(d<stop){if(auto.world){var w=auto.world;auto=null;land(w.id)}else auto=null}
+    else{var want=Math.atan2(dy,dx),da=Math.atan2(Math.sin(want-ship.a),Math.cos(want-ship.a));
+      turn=Math.max(-1,Math.min(1,da*4));th=Math.abs(da)<.5&&Math.hypot(ship.vx,ship.vy)<Math.max(90,d*1.4);
+      if(!th){ship.vx*=1-2.2*dt;ship.vy*=1-2.2*dt}}
+  }
+  ship.a+=turn*3.4*dt;ship.thrust=th;
+  if(th){ship.vx+=Math.cos(ship.a)*430*dt;ship.vy+=Math.sin(ship.a)*430*dt}
+  if(keys.arrowdown||keys.s){ship.vx*=1-3*dt;ship.vy*=1-3*dt}
+  ship.vx*=1-.55*dt;ship.vy*=1-.55*dt;
+  var sp=Math.hypot(ship.vx,ship.vy);if(sp>540){ship.vx*=540/sp;ship.vy*=540/sp}
+  var far=Math.hypot(ship.x,ship.y);if(far>1500){ship.vx-=ship.x/far*300*dt;ship.vy-=ship.y/far*300*dt}
+  ship.x+=ship.vx*dt;ship.y+=ship.vy*dt;
+  rocks.forEach(function(r){r.x+=r.vx*dt;r.y+=r.vy*dt;r.a+=r.s*dt});
+  near=null;WORLDS.forEach(function(w){if(Math.hypot(ship.x-w.x,ship.y-w.y)<w.r+80)near=w});
+  var p=$('#prompt');
+  if(near&&started){p.hidden=false;p.textContent='Press Enter to land on '+near.name}else p.hidden=true;
+}
+function glow(c,b){g.strokeStyle=c;g.fillStyle=c;g.shadowColor=c;g.shadowBlur=b}
+function draw(t){
+  g.setTransform(dpr,0,0,dpr,0,0);g.shadowBlur=0;g.fillStyle='#050914';g.fillRect(0,0,W,H);
+  var k=warpTo?warp/.55:0;
+  /* stars */
+  g.lineWidth=1;
+  stars.forEach(function(s){
+    var sx=((s.x-ship.x*s.z*.5)%2000+2000)%2000/2000*W*1.4-W*.2,sy=((s.y-ship.y*s.z*.5)%2000+2000)%2000/2000*H*1.4-H*.2;
+    g.globalAlpha=.35+s.z*.65;g.strokeStyle=g.fillStyle='#cfe9ff';
+    if(k>0){var dx=sx-W/2,dy=sy-H/2;g.beginPath();g.moveTo(sx,sy);g.lineTo(sx+dx*k*k*1.6,sy+dy*k*k*1.6);g.stroke()}
+    else g.fillRect(sx,sy,s.z>.8?2:1,s.z>.8?2:1);
+  });
+  g.globalAlpha=1-k;
+  g.save();g.translate(W/2-ship.x,H/2-ship.y);
+  /* rocks */
+  g.lineWidth=1.5;glow('#5f7f95',4);
+  rocks.forEach(function(r){g.beginPath();for(var i=0;i<7;i++){var a=r.a+i/7*6.283,rr=r.r*(.75+.25*Math.sin(i*2.3+r.r));g[i?'lineTo':'moveTo'](r.x+Math.cos(a)*rr,r.y+Math.sin(a)*rr)}g.closePath();g.stroke()});
+  /* worlds */
+  WORLDS.forEach(function(w){
+    g.lineWidth=2;glow(w.c,14);
+    g.beginPath();g.arc(w.x,w.y,w.r,0,6.283);g.stroke();
+    g.lineWidth=1;g.shadowBlur=6;
+    for(var i=-2;i<=2;i++){var yy=i*w.r/3,rx=Math.sqrt(w.r*w.r-yy*yy);g.beginPath();g.ellipse(w.x,w.y+yy,rx,rx*.22,0,0,3.1416);g.stroke()}
+    var spin=(((t/4000+w.x)%1)+1)%1;
+    for(i=0;i<3;i++){var ph=((spin+i/3)%1)*2-1;g.beginPath();g.ellipse(w.x,w.y,Math.abs(ph)*w.r,w.r,0,ph>0?-1.5708:1.5708,ph>0?1.5708:4.7124);g.stroke()}
+    if(w.ring){g.lineWidth=1.5;g.beginPath();g.ellipse(w.x,w.y,w.r*1.7,w.r*.4,-.35,0,6.283);g.stroke()}
+    if(w.moon){var ma=t/2600+w.y;g.beginPath();g.arc(w.x+Math.cos(ma)*(w.r+26),w.y+Math.sin(ma)*(w.r+26)*.6,5,0,6.283);g.stroke()}
+    g.shadowBlur=8;g.textAlign='center';g.font='700 15px ui-monospace,Menlo,Consolas,monospace';g.fillText(w.name+(seen[w.id]?' ✓':''),w.x,w.y+w.r+30);
+    g.font='12px ui-monospace,Menlo,Consolas,monospace';g.globalAlpha=(1-k)*.75;g.fillText(w.sub,w.x,w.y+w.r+47);g.globalAlpha=1-k;
+  });
+  if(auto&&!auto.world){glow('#ffb347',6);g.lineWidth=1;g.beginPath();g.arc(auto.x,auto.y,8,0,6.283);g.stroke()}
+  /* ship */
+  g.translate(ship.x,ship.y);g.rotate(ship.a);g.lineWidth=2;glow('#7fe7ff',12);
+  g.beginPath();g.moveTo(18,0);g.lineTo(-12,-11);g.lineTo(-6,0);g.lineTo(-12,11);g.closePath();g.stroke();
+  if(ship.thrust||warpTo){glow('#ffb347',14);g.beginPath();g.moveTo(-9,-5);g.lineTo(-20-Math.random()*10,0);g.lineTo(-9,5);g.stroke()}
+  g.restore();
+  /* edge pointers */
+  if(started&&!warpTo)WORLDS.forEach(function(w){
+    var dx=w.x-ship.x,dy=w.y-ship.y;if(Math.abs(dx)<W/2-30&&Math.abs(dy)<H/2-30)return;
+    var a=Math.atan2(dy,dx),m=44,sc=Math.min((W/2-m)/Math.abs(Math.cos(a)||1e-6),(H/2-76)/Math.abs(Math.sin(a)||1e-6));
+    var px=W/2+Math.cos(a)*sc,py=H/2+Math.sin(a)*sc;
+    glow(w.c,8);g.lineWidth=2;g.save();g.translate(px,py);g.rotate(a);g.beginPath();g.moveTo(10,0);g.lineTo(-6,-7);g.lineTo(-6,7);g.closePath();g.stroke();g.restore();
+    g.font='11px ui-monospace,Menlo,Consolas,monospace';g.textAlign=px>W*.7?'right':px<W*.3?'left':'center';
+    g.fillText(w.name,px-Math.cos(a)*18,py-Math.sin(a)*18+(py<H/2?14:-8));
+  });
+  g.globalAlpha=1;g.shadowBlur=0;
+  if(k>0){g.fillStyle='rgba(255,255,255,'+(k*k*k)+')';g.fillRect(0,0,W,H)}
+}
+var last=0;
+function frame(t){
+  var dt=Math.min(.05,(t-last)/1000||0);last=t;
+  if(!inWorld){step(dt);draw(t)}else if(inWorld==='robotics')armFrame(t,dt);else if(inWorld==='library')cupFrame();else if(inWorld==='workshop')printFrame(t);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- world routing ---------- */
+function openWorld(id){
+  if(!byId[id])return;
+  if(inWorld)$('#w-'+inWorld).hidden=true;
+  inWorld=id;auto=null;keys={};$('#hub').hidden=true;$('#w-'+id).hidden=false;document.body.dataset.w=id;
+  window.scrollTo(0,0);markSeen(id);document.title=byId[id].name+' — Josh Johnson';
+  if(location.hash!=='#'+id){try{history.replaceState(null,'','#'+id)}catch(e){location.hash=id}}
+  if(id==='deals')dealInit();if(id==='robotics')armInit();if(id==='library')cupInit();if(id==='uganda')photosInit();
+  $('#w-'+id+' .launch').focus({preventScroll:true});
+}
+function closeWorld(){
+  if(!inWorld)return;var w=byId[inWorld];$('#w-'+inWorld).hidden=true;inWorld=null;delete document.body.dataset.w;
+  $('#hub').hidden=false;started=true;$('#brief').hidden=true;size();
+  ship.x=w.x;ship.y=w.y+w.r+60;ship.vx=0;ship.vy=70;ship.a=Math.PI/2;
+  document.title='Josh Johnson — fly the map';
+  try{history.replaceState(null,'',location.pathname+location.search)}catch(e){location.hash=''}
+}
+document.querySelectorAll('.launch').forEach(function(b){b.onclick=closeWorld});
+function route(){var h=location.hash.replace('#','');if(byId[h]){if(inWorld!==h)openWorld(h)}else if(inWorld)closeWorld()}
+window.addEventListener('hashchange',route);
+
+/* ---------- robot arm ---------- */
+var L={h:.10,a:.116,b:.135,c:.10},D=Math.PI/180;
+var J=[{k:'pan',n:'Shoulder pan',min:-110,max:110,v:0},{k:'lift',n:'Shoulder lift',min:0,max:180,v:100},{k:'elbow',n:'Elbow',min:-150,max:0,v:-110},
+       {k:'wrist',n:'Wrist flex',min:-120,max:110,v:-40},{k:'roll',n:'Wrist roll',min:-180,max:180,v:0},{k:'grip',n:'Gripper',min:0,max:100,v:40}];
+var HOME={pan:0,lift:100,elbow:-110,wrist:-40,roll:0,grip:40},q={},armReady=false,cam={yaw:-.75,pitch:.42},acv,ag,
+    cube={pan:35,held:false,p:null},demo=null;
+function armInit(){
+  acv=$('#arm');ag=acv.getContext('2d');
+  if(!armReady){armReady=true;
+    var box=$('#armctl'),first=box.firstElementChild;
+    J.forEach(function(j){q[j.k]=j.v;
+      var l=document.createElement('label');l.innerHTML=j.n+' <output id="o-'+j.k+'"></output><input type="range" id="s-'+j.k+'" min="'+j.min+'" max="'+j.max+'" step="1" value="'+j.v+'">';
+      box.insertBefore(l,first);l.querySelector('input').oninput=function(){demo=null;q[j.k]=+this.value;syncOut()};
+    });
+    var drag=null;
+    acv.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};acv.setPointerCapture(e.pointerId)});
+    acv.addEventListener('pointermove',function(e){if(!drag)return;cam.yaw+=(e.clientX-drag.x)*.01;cam.pitch=Math.max(.05,Math.min(1.4,cam.pitch+(e.clientY-drag.y)*.006));drag={x:e.clientX,y:e.clientY}});
+    acv.addEventListener('pointerup',function(){drag=null});
+    $('#demo').onclick=startDemo;$('#home').onclick=function(){demo={steps:[HOME],i:0,t:0,from:copy(q),flags:[null]}};
+    cube.p=polar(.2,cube.pan,.015);
+  }
+  syncOut();
+}
+function copy(o){var r={};for(var k in o)r[k]=o[k];return r}
+function syncOut(){J.forEach(function(j){var s=$('#s-'+j.k);if(s){s.value=q[j.k];$('#o-'+j.k).textContent=Math.round(q[j.k])+(j.k==='grip'?'%':'°')}})}
+function polar(r,panDeg,z){return[r*Math.cos(panDeg*D),r*Math.sin(panDeg*D),z]}
+function ik(r,z){ /* gripper pointing straight down at radius r, tip height z */
+  var x=r,y=z+L.c-L.h,d=Math.hypot(x,y),p1=Math.atan2(y,x)+Math.acos(Math.max(-1,Math.min(1,(d*d+L.a*L.a-L.b*L.b)/(2*L.a*d))));
+  var a2=Math.atan2(y-L.a*Math.sin(p1),x-L.a*Math.cos(p1));
+  return{lift:p1/D,elbow:(a2-p1)/D,wrist:(-Math.PI/2-a2)/D};
+}
+function pose(pan,r,z,grip){var k=ik(r,z);k.pan=pan;k.roll=0;k.grip=grip;return k}
+function startDemo(){
+  var A=cube.pan,B=-A,R=.2;
+  demo={i:0,t:0,from:copy(q),
+    steps:[pose(A,R,.09,70),pose(A,R,.02,70),pose(A,R,.02,22),pose(A,R,.10,22),pose(B,R,.10,22),pose(B,R,.02,22),pose(B,R,.02,70),pose(B,R,.09,70),HOME],
+    flags:[null,null,'grab',null,null,null,'drop',null,null]};
+  cube.held=false;cube.p=polar(R,A,.015);
+}
+function fk(){
+  var pan=q.pan*D,rx=Math.cos(pan),ry=Math.sin(pan),a1=q.lift*D,a2=a1+q.elbow*D,a3=a2+q.wrist*D;
+  function adv(p,len,a){return[p[0]+len*Math.cos(a)*rx,p[1]+len*Math.cos(a)*ry,p[2]+len*Math.sin(a)]}
+  var p1=[0,0,L.h],p2=adv(p1,L.a,a1),p3=adv(p2,L.b,a2),pj=adv(p3,L.c*.45,a3),p4=adv(p3,L.c,a3);
+  var s=[-ry,rx,0],u=[-Math.sin(a3)*rx,-Math.sin(a3)*ry,Math.cos(a3)],ro=q.roll*D,w=.008+.03*q.grip/100;
+  var j=[0,1,2].map(function(i){return(Math.cos(ro)*s[i]+Math.sin(ro)*u[i])*w});
+  function off(p,m){return[p[0]+j[0]*m,p[1]+j[1]*m,p[2]+j[2]*m]}
+  return{pts:[[0,0,0],p1,p2,p3,pj],tip:p4,jaws:[[off(pj,1),off(p4,1)],[off(pj,-1),off(p4,-1)]],palm:[off(pj,1),off(pj,-1)]};
+}
+function armFrame(t,dt){
+  if(!armReady)return;
+  if(demo){
+    demo.t+=dt/.75;var tgt=demo.steps[demo.i],e=Math.min(1,demo.t),s=e*e*(3-2*e);
+    for(var k in tgt)q[k]=demo.from[k]+(tgt[k]-demo.from[k])*s;
+    if(e>=1){var f=demo.flags[demo.i];if(f==='grab')cube.held=true;if(f==='drop'){cube.held=false;cube.pan=-cube.pan;cube.p=polar(.2,cube.pan,.015)}
+      demo.i++;demo.t=0;demo.from=copy(q);if(demo.i>=demo.steps.length)demo=null}
+    syncOut();
+  }
+  var w=acv.clientWidth,h=acv.clientHeight,r=Math.min(2,window.devicePixelRatio||1);
+  if(acv.width!==Math.round(w*r)){acv.width=Math.round(w*r);acv.height=Math.round(h*r)}
+  ag.setTransform(r,0,0,r,0,0);ag.clearRect(0,0,w,h);
+  var S=Math.min(w,h)*2.1,cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  function P(p){var x=p[0]*cy-p[1]*sy,y=p[0]*sy+p[1]*cy;return[w/2+S*x,h*.72-S*(p[2]*cp+y*sp)]}
+  function line(a,b){a=P(a);b=P(b);ag.beginPath();ag.moveTo(a[0],a[1]);ag.lineTo(b[0],b[1]);ag.stroke()}
+  ag.lineCap='round';ag.lineJoin='round';
+  /* floor grid */
+  ag.strokeStyle='#22303c';ag.lineWidth=1;
+  for(var i=-6;i<=6;i++){line([i*.05,-.3,0],[i*.05,.3,0]);line([-.3,i*.05,0],[.3,i*.05,0])}
+  var F=fk();if(cube.held)cube.p=[F.tip[0],F.tip[1],Math.max(.015,F.tip[2])];
+  /* shadows */
+  ag.strokeStyle='rgba(0,0,0,.55)';ag.lineWidth=9;
+  for(i=1;i<F.pts.length-1;i++)line([F.pts[i][0],F.pts[i][1],0],[F.pts[i+1][0],F.pts[i+1][1],0]);
+  /* cube */
+  var c=cube.p,e2=.015;ag.strokeStyle='#7fe7ff';ag.lineWidth=1.5;
+  var cs=[[-1,-1],[1,-1],[1,1],[-1,1]];
+  for(i=0;i<4;i++){var a=cs[i],b=cs[(i+1)%4];
+    line([c[0]+a[0]*e2,c[1]+a[1]*e2,c[2]-e2],[c[0]+b[0]*e2,c[1]+b[1]*e2,c[2]-e2]);
+    line([c[0]+a[0]*e2,c[1]+a[1]*e2,c[2]+e2],[c[0]+b[0]*e2,c[1]+b[1]*e2,c[2]+e2]);
+    line([c[0]+a[0]*e2,c[1]+a[1]*e2,c[2]-e2],[c[0]+a[0]*e2,c[1]+a[1]*e2,c[2]+e2])}
+  /* base */
+  ag.strokeStyle='#5b6976';ag.lineWidth=2;ag.beginPath();
+  for(i=0;i<=24;i++){var pp=P([.045*Math.cos(i/24*6.283),.045*Math.sin(i/24*6.283),0]);ag[i?'lineTo':'moveTo'](pp[0],pp[1])}ag.stroke();
+  /* links */
+  var wd=[16,13,11,9];
+  for(i=0;i<F.pts.length-1;i++){ag.strokeStyle=i%2?'#ff7a1a':'#eef2f5';ag.lineWidth=wd[i];line(F.pts[i],F.pts[i+1])}
+  ag.strokeStyle='#eef2f5';ag.lineWidth=5;line(F.palm[0],F.palm[1]);line(F.jaws[0][0],F.jaws[0][1]);line(F.jaws[1][0],F.jaws[1][1]);
+  for(i=1;i<4;i++){var jp=P(F.pts[i]);ag.fillStyle='#10151c';ag.strokeStyle='#ff7a1a';ag.lineWidth=2;ag.beginPath();ag.arc(jp[0],jp[1],6,0,6.283);ag.fill();ag.stroke()}
+  ag.fillStyle='#8a98a5';ag.font='12px Helvetica,Arial,sans-serif';
+  ag.fillText('Gripper tip  x '+(F.tip[0]*100).toFixed(1)+'  y '+(F.tip[1]*100).toFixed(1)+'  z '+(F.tip[2]*100).toFixed(1)+' cm',12,20);
+}
+
+/* ---------- coffee cup ---------- */
+var GW=96,GH=64,BS=8,grid,hist,cupCtx,plotCtx,cupImg,cupBound=false;
+function cupInit(){
+  cupCtx=$('#cup').getContext('2d');plotCtx=$('#plot').getContext('2d');cupImg=cupCtx.createImageData(GW,GH);
+  if(!cupBound){cupBound=true;$('#pour').onclick=pour}
+  if(!grid)pour();
+}
+function pour(){grid=new Uint8Array(GW*GH);for(var i=0;i<GW*GH/2;i++)grid[i]=1;hist=[]}
+function cupMeasure(){
+  var bw=GW/BS,bh=GH/BS,lv=[],ent=0,x,y,i,j;
+  for(y=0;y<bh;y++)for(x=0;x<bw;x++){var n=0;for(j=0;j<BS;j++)for(i=0;i<BS;i++)n+=grid[(y*BS+j)*GW+x*BS+i];
+    var f=n/(BS*BS);ent+=(f>0&&f<1)?-(f*Math.log2(f)+(1-f)*Math.log2(1-f)):0;lv.push(f<1/3?0:f<2/3?1:2)}
+  var diff=0,pairs=0;
+  for(y=0;y<bh;y++)for(x=0;x<bw;x++){if(x<bw-1){pairs++;if(lv[y*bw+x]!==lv[y*bw+x+1])diff++}if(y<bh-1){pairs++;if(lv[y*bw+x]!==lv[(y+1)*bw+x])diff++}}
+  return[ent/(bw*bh),diff/pairs];
+}
+function cupStir(n){
+  for(var s=0;s<n;s++){var i=(Math.random()*GW*GH)|0,d=(Math.random()*4)|0,x=i%GW,y=(i/GW)|0,j;
+    if(d===0&&x<GW-1)j=i+1;else if(d===1&&x>0)j=i-1;else if(d===2&&y<GH-1)j=i+GW;else if(d===3&&y>0)j=i-GW;else continue;
+    var t=grid[i];grid[i]=grid[j];grid[j]=t}
+}
+function cupFrame(){
+  if(!grid)return;
+  if(hist.length<400){cupStir(30000);hist.push(cupMeasure())}
+  for(var i=0;i<GW*GH;i++){var m=grid[i],o=i*4;cupImg.data[o]=m?245:74;cupImg.data[o+1]=m?232:44;cupImg.data[o+2]=m?205:22;cupImg.data[o+3]=255}
+  cupCtx.putImageData(cupImg,0,0);
+  var p=plotCtx,w=400,h=128;p.clearRect(0,0,w,h);p.fillStyle='#000';p.fillRect(0,0,w,h);p.lineWidth=2;
+  [[0,'#f6c21c',1],[1,'#7fe7ff',2.4]].forEach(function(s){p.strokeStyle=s[1];p.beginPath();
+    hist.forEach(function(v,k){p[k?'lineTo':'moveTo'](k,h-6-Math.min(1,v[s[0]]*s[2])*(h-12))});p.stroke()});
+  p.font='12px Palatino,serif';p.fillStyle='#f6c21c';p.fillText('mixing',w-50,16);p.fillStyle='#7fe7ff';p.fillText('structure',w-64,h-10);
+}
+
+/* ---------- print animation ---------- */
+function printFrame(t){
+  var c=$('#print'),w=c.clientWidth,h=c.clientHeight,r=Math.min(2,window.devicePixelRatio||1);
+  if(c.width!==Math.round(w*r)){c.width=Math.round(w*r);c.height=Math.round(h*r)}
+  var x=c.getContext('2d');x.setTransform(r,0,0,r,0,0);x.clearRect(0,0,w,h);x.strokeStyle='#f2f7ff';x.lineWidth=1;
+  var layers=22,prog=reduce?1:(t/9000)%1.15,n=Math.min(layers,Math.floor(prog*layers)),cx=w/2,base=h-14;
+  x.beginPath();x.moveTo(cx-150,base+4);x.lineTo(cx+150,base+4);x.stroke();
+  for(var i=0;i<n;i++){var f=i/(layers-1),hw=100*Math.sqrt(Math.max(0,1-f*f));x.beginPath();x.ellipse(cx,base-i*5,hw,hw*.16,0,0,6.283);x.stroke()}
+  if(n<layers&&!reduce){var f2=n/(layers-1),hw2=100*Math.sqrt(Math.max(0,1-f2*f2)),nx=cx+Math.cos(t/160)*hw2,ny=base-n*5;
+    x.beginPath();x.moveTo(nx,ny-3);x.lineTo(nx-6,ny-16);x.lineTo(nx+6,ny-16);x.closePath();x.stroke()}
+  x.fillStyle='#f2f7ff';x.font='12px "Courier New",monospace';x.fillText('Dome, layer '+n+' of '+layers,10,16);
+}
+
+/* ---------- deal calculator ---------- */
+function dealInit(){
+  var a=$('#sold'),b=$('#grow');
+  function up(){var s=a.value/100,gr=+b.value,v=s+(1-s)*gr;
+    $('#o-sold').textContent=a.value+'%';$('#o-grow').textContent=gr.toFixed(1)+'×';
+    $('#b-part').textContent='Sell '+a.value+'%, keep '+(100-a.value)+'%: '+v.toFixed(2)+'× today\'s value';
+    $('#b-part').style.width=Math.min(100,v/2.2*100)+'%';$('#b-full').style.width=(1/2.2*100)+'%'}
+  a.oninput=b.oninput=up;up();
+}
+
+/* ---------- photos ---------- */
+var photosDone=false;
+function photosInit(){
+  if(photosDone)return;photosDone=true;var box=$('#photos');
+  for(var i=1;i<=5;i++)(function(i){
+    var f=document.createElement('figure'),im=new Image();f.textContent='Photo '+i;
+    im.alt='Photo from Uganda';im.onload=function(){f.textContent='';f.appendChild(im)};im.src='photos/uganda-'+i+'.jpg';box.appendChild(f);
+  })(i);
+}
+
+size();renderNav();route();requestAnimationFrame(frame);
+window.__jj={ship:ship,q:q,openWorld:openWorld,cupMeasure:cupMeasure,cupStir:cupStir,pour:pour,hist:function(){return hist},fk:fk,cube:cube};
+})();
+</script>
+</body>
+</html>
