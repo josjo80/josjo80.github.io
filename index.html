@@ -654,9 +654,12 @@ function dealInit(){
 var photosDone=false;
 function photosInit(){
   if(photosDone)return;photosDone=true;var box=$('#photos');
+  var ALT=['Our family and a friend, masked up in the back of a van','Watching the sun set over a wide river from a wooden deck',
+    'Me grinning beside a boy in a blue shirt, next to a Land Cruiser on a red dirt road','Sitting on a shop step with the kids and a neighbour boy, looking at a phone',
+    'Visiting a hospital ward with a nurse in blue scrubs'];
   for(var i=1;i<=5;i++)(function(i){
     var f=document.createElement('figure'),im=new Image();f.textContent='Photo '+i;
-    im.alt='Photo from Uganda';im.onload=function(){f.textContent='';f.appendChild(im)};im.src='photos/uganda-'+i+'.jpg';box.appendChild(f);
+    im.alt=ALT[i-1];im.onload=function(){f.textContent='';f.appendChild(im)};im.src='photos/uganda-'+i+'.jpg';box.appendChild(f);
   })(i);
 }
 
