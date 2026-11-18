@@ -33,12 +33,16 @@ Not tested: click-to-fly autopilot landing, real touch devices, Safari/Firefox.
 1. (Done) Résumé: `joshua-johnson-resume.pdf` is a copy of "Joshua Johnson Resume 2026c.pdf",
    published with Josh's explicit approval (it includes clearance, client and program names).
    Linked from the Service Record page. To update, replace the file and keep the name.
-2. Split `index.html` into `css/`, `js/hub.js`, `js/arm.js`, etc. once it grows.
-3. Keyboard control of the arm; optionally add the ~3 cm horizontal shoulder offset to `fk()`/`ik()`.
+2. Split `index.html` into `css/`, `js/hub.js`, `js/arm.js`, etc. once it grows (about 55 KB now; not yet worth it).
+3. (Done) Keyboard control of the arm: hold arrows / W S / E D / Z X / C V (`AK` map, `armKeys()`).
+   Still optional: add the ~3 cm horizontal shoulder offset to `fk()`/`ik()`.
+   Also done: sound toggle on the hub (off by default, remembered in localStorage as `jj-sound`;
+   `sndWake()`, `sndThrust()`, `sndChime()`), and off-screen world pointers no longer draw under the HUD.
 4. Add a résumé PDF download link on the Service Record page (needs the PDF from Josh).
 5. Test on a real phone and in Safari/Firefox. Manual thrust/turn buttons look unnecessary
    (tap-to-fly plus the tappable land prompt cover it), but confirm on a device.
-6. Optional: sound toggle, more per-world interactivity (prusik sim embed, print animation).
+6. Optional: more per-world interactivity (prusik sim embed). Two pointers in the same direction
+   (Uganda and Service Record from the start position) can overlap their labels.
 
 ## Content rules Josh has set or accepted
 - Public site. No dollar figures or ownership percentages. No kids' names.

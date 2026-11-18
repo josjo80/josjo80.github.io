@@ -24,6 +24,8 @@ button{font:inherit;cursor:pointer}
   background:rgba(5,9,20,.8);text-shadow:0 0 8px rgba(255,179,71,.6);max-width:calc(100vw - 32px);text-align:center}
 #prompt:hover{background:rgba(255,179,71,.14)}
 #ident{max-width:calc(100vw - 40px)}
+#snd{margin-top:8px;background:rgba(5,9,20,.6);border:1px solid rgba(127,231,255,.45);color:#7fe7ff;padding:3px 10px;font-size:.78rem}
+#snd[aria-pressed=true]{border-color:#ffb347;color:#ffb347}
 #keys{left:20px;bottom:16px;font-size:.8rem;color:#8fb8c8;max-width:60vw}
 #nav{right:16px;top:16px;width:230px;background:rgba(5,9,20,.78);border:1px solid rgba(127,231,255,.45);padding:10px}
 #nav h2{margin:0 0 6px;font-size:.8rem;font-weight:400;color:#b9dcea}
@@ -83,7 +85,10 @@ body[data-w=robotics]{background:#10151c}
 .ctl input{width:100%;accent-color:#ff7a1a}
 .ctl button{width:100%;padding:10px;margin-top:6px;background:#ff7a1a;border:0;color:#10151c;font-weight:700}
 .ctl button.alt{background:none;border:1px solid #5b6976;color:#eef2f5}
+.keyhelp{font-size:.9rem;color:#a9b6c2;margin-top:-6px}
+.keyhelp kbd{font:inherit;font-size:.8rem;border:1px solid #5b6976;border-bottom-width:2px;padding:0 5px;color:#eef2f5}
 @media (max-width:760px){.bench{grid-template-columns:1fr}#arm{height:340px}}
+@media (pointer:coarse){.keyhelp{display:none}}
 
 /* research archive: a preprint */
 body[data-w=research]{background:#fff}
@@ -170,7 +175,7 @@ body[data-w=offduty]{background:#000}
 
 <div id="hub">
   <canvas id="space" aria-label="Star map. Fly the ship to a world and land to open its page. The list of worlds is also available as buttons."></canvas>
-  <div class="hud" id="ident"><h1>Josh Johnson</h1><p>Engineer, builder, writer. Superior, Colorado.</p></div>
+  <div class="hud" id="ident"><h1>Josh Johnson</h1><p>Engineer, builder, writer. Superior, Colorado.</p><button id="snd" aria-pressed="false">Sound off</button></div>
   <button class="hud" id="prompt" hidden></button>
   <div class="hud" id="keys">Arrow keys or WASD to fly. Enter to land. Or click a world and the ship flies itself.</div>
   <nav class="hud" id="nav" aria-label="Worlds"><h2>Jump straight to a world</h2><ul id="navlist"></ul><p id="tally"></p></nav>
@@ -228,6 +233,7 @@ body[data-w=offduty]{background:#000}
       <button id="home" class="alt">Send home</button>
     </div>
   </div>
+  <p class="keyhelp">Keyboard: hold <kbd>←</kbd> <kbd>→</kbd> to pan, <kbd>↑</kbd> <kbd>↓</kbd> for the shoulder, <kbd>W</kbd> <kbd>S</kbd> for the elbow, <kbd>E</kbd> <kbd>D</kbd> to flex the wrist, <kbd>Z</kbd> <kbd>X</kbd> to roll it, and <kbd>C</kbd> <kbd>V</kbd> to close and open the gripper.</p>
   <h2>What I'm using it for</h2>
   <p>Most of today's robot policies generate actions with a flow-matching head on top of a vision-language model. A recent method steers that head at inference time to make motion smoother, but it costs a second forward pass and uses one guidance strength everywhere, which can hurt precise moves.</p>
   <p>My project tries to fix both: get the guidance signal almost for free, and turn it up only when the policy is uncertain. The plan is to prove it in simulation on the LIBERO benchmark with the open π0 model, then confirm it on this arm.</p>
@@ -390,8 +396,34 @@ var ship={x:0,y:0,vx:0,vy:0,a:-Math.PI/2,thrust:false},keys={},auto=null,warp=0,
 var stars=[];for(var i=0;i<260;i++)stars.push({x:Math.random()*2000,y:Math.random()*2000,z:.2+Math.random()*.8});
 var rocks=[];for(i=0;i<14;i++)rocks.push({x:(Math.random()-.5)*2600,y:(Math.random()-.5)*1800,vx:(Math.random()-.5)*20,vy:(Math.random()-.5)*20,r:8+Math.random()*14,a:Math.random()*6,s:(Math.random()-.5)});
 
+/* ---------- sound (off by default) ---------- */
+var snd={on:false,ctx:null,g:null,thr:false};
+try{snd.on=localStorage.getItem('jj-sound')==='1'}catch(e){}
+function sndLabel(){var b=$('#snd');b.textContent=snd.on?'Sound on':'Sound off';b.setAttribute('aria-pressed',String(snd.on))}
+function sndWake(){ /* audio can only start after a user gesture */
+  if(!snd.on)return;
+  if(snd.ctx){if(snd.ctx.state==='suspended')snd.ctx.resume();return}
+  try{var C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+    var c=new C(),buf=c.createBuffer(1,c.sampleRate,c.sampleRate),d=buf.getChannelData(0);
+    for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    var s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=buf;s.loop=true;f.type='lowpass';f.frequency.value=380;g.gain.value=0;
+    s.connect(f);f.connect(g);g.connect(c.destination);s.start();snd.ctx=c;snd.g=g;snd.thr=false}catch(e){}
+}
+function sndThrust(on){on=!!(on&&snd.on);if(!snd.g||on===snd.thr)return;snd.thr=on;snd.g.gain.setTargetAtTime(on?.16:0,snd.ctx.currentTime,.06)}
+function sndChime(){
+  if(!snd.on||!snd.ctx)return;
+  var c=snd.ctx,o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
+  o.type='triangle';o.frequency.setValueAtTime(330,t);o.frequency.exponentialRampToValueAtTime(990,t+.5);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.05);g.gain.exponentialRampToValueAtTime(.0001,t+.6);
+  o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.65);
+}
+$('#snd').onclick=function(){snd.on=!snd.on;try{localStorage.setItem('jj-sound',snd.on?'1':'0')}catch(e){}sndLabel();if(snd.on)sndWake();else sndThrust(false)};
+sndLabel();
+
 window.addEventListener('keydown',function(e){
-  if(inWorld){if(e.key==='Escape')closeWorld();return}
+  if(inWorld){if(e.key==='Escape')closeWorld();else if(inWorld==='robotics')armKey(e,true);return}
+  sndWake();
   var k=e.key.toLowerCase();
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(k)>=0)e.preventDefault();
   if(e.target&&e.target.tagName==='BUTTON'&&(k==='enter'||k===' '))return;
@@ -399,19 +431,21 @@ window.addEventListener('keydown',function(e){
   if(!started&&(k==='enter'||k===' ')){start();return}
   if((k==='enter'||k===' ')&&near)land(near.id);
 });
-window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false});
+window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;armKey(e,false)});
+window.addEventListener('blur',function(){keys={};armHeld={}});
 cv.addEventListener('pointerdown',function(e){
   if(!started)return;
+  sndWake();
   var wx=ship.x+e.clientX-W/2,wy=ship.y+e.clientY-H/2,hit=null;
   WORLDS.forEach(function(w){if(Math.hypot(wx-w.x,wy-w.y)<w.r+34)hit=w});
   auto=hit?{x:hit.x,y:hit.y,world:hit}:{x:wx,y:wy,world:null};
 });
 var touch=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
 $('#prompt').onclick=function(){if(near)land(near.id)};
-function start(){started=true;$('#brief').hidden=true;cv.focus&&cv.focus()}
+function start(){sndWake();started=true;$('#brief').hidden=true;cv.focus&&cv.focus()}
 $('#start').onclick=start;
 
-function land(id){if(warpTo)return;if(reduce){openWorld(id);return}warpTo=id;warp=0}
+function land(id){if(warpTo)return;sndThrust(false);sndChime();if(reduce){openWorld(id);return}warpTo=id;warp=0}
 function step(dt){
   if(warpTo){warp+=dt;if(warp>.55){var id=warpTo;warpTo=null;warp=0;openWorld(id)}return}
   var turn=0,th=false;
@@ -424,7 +458,7 @@ function step(dt){
       turn=Math.max(-1,Math.min(1,da*4));th=Math.abs(da)<.5&&Math.hypot(ship.vx,ship.vy)<Math.max(90,d*1.4);
       if(!th){ship.vx*=1-2.2*dt;ship.vy*=1-2.2*dt}}
   }
-  ship.a+=turn*3.4*dt;ship.thrust=th;
+  ship.a+=turn*3.4*dt;ship.thrust=th;sndThrust(th);
   if(th){ship.vx+=Math.cos(ship.a)*430*dt;ship.vy+=Math.sin(ship.a)*430*dt}
   if(keys.arrowdown||keys.s){ship.vx*=1-3*dt;ship.vy*=1-3*dt}
   ship.vx*=1-.55*dt;ship.vy*=1-.55*dt;
@@ -475,8 +509,11 @@ function draw(t){
   /* edge pointers */
   if(started&&!warpTo)WORLDS.forEach(function(w){
     var dx=w.x-ship.x,dy=w.y-ship.y;if(Math.abs(dx)<W/2-30&&Math.abs(dy)<H/2-30)return;
-    var a=Math.atan2(dy,dx),m=44,sc=Math.min((W/2-m)/Math.abs(Math.cos(a)||1e-6),(H/2-76)/Math.abs(Math.sin(a)||1e-6));
-    var px=W/2+Math.cos(a)*sc,py=H/2+Math.sin(a)*sc;
+    /* keep pointers inside the area not covered by the name, world list and key hints */
+    var wide=W>720,bx0=44,bx1=W-44-(wide?262:0),by0=wide?124:116,by1=H-(wide?70:112);
+    var a=Math.atan2(dy,dx),ca=Math.cos(a),sa=Math.sin(a);
+    var sc=Math.min(Math.abs(ca)<1e-6?1e9:((ca>0?bx1:bx0)-W/2)/ca,Math.abs(sa)<1e-6?1e9:((sa>0?by1:by0)-H/2)/sa);
+    var px=W/2+ca*sc,py=H/2+sa*sc;
     glow(w.c,8);g.lineWidth=2;g.save();g.translate(px,py);g.rotate(a);g.beginPath();g.moveTo(10,0);g.lineTo(-6,-7);g.lineTo(-6,7);g.closePath();g.stroke();g.restore();
     g.font='11px ui-monospace,Menlo,Consolas,monospace';g.textAlign=px>W*.7?'right':px<W*.3?'left':'center';
     g.fillText(w.name,px-Math.cos(a)*18,py-Math.sin(a)*18+(py<H/2?14:-8));
@@ -563,8 +600,24 @@ function fk(){
   function off(p,m){return[p[0]+j[0]*m,p[1]+j[1]*m,p[2]+j[2]*m]}
   return{pts:[[0,0,0],p1,p2,p3,pj],tip:p4,jaws:[[off(pj,1),off(p4,1)],[off(pj,-1),off(p4,-1)]],palm:[off(pj,1),off(pj,-1)]};
 }
+/* keyboard: hold a key to move a joint */
+var AK={arrowleft:['pan',-1],arrowright:['pan',1],arrowup:['lift',1],arrowdown:['lift',-1],w:['elbow',1],s:['elbow',-1],
+        e:['wrist',1],d:['wrist',-1],z:['roll',-1],x:['roll',1],c:['grip',-1],v:['grip',1]},armHeld={};
+function armKey(e,down){
+  var k=e.key.toLowerCase(),t=e.target;if(!AK[k])return;
+  if(!down){delete armHeld[k];return}
+  if(t&&(t.tagName==='INPUT'||(t.tagName==='BUTTON'&&k===' '))||e.metaKey||e.ctrlKey||e.altKey)return;
+  e.preventDefault();armHeld[k]=1;demo=null;
+}
+function armKeys(dt){
+  var moved=false;
+  for(var k in armHeld){var a=AK[k],j=J.filter(function(x){return x.k===a[0]})[0];
+    q[j.k]=Math.max(j.min,Math.min(j.max,q[j.k]+a[1]*(j.k==='grip'?90:60)*dt));moved=true}
+  if(moved)syncOut();
+}
 function armFrame(t,dt){
   if(!armReady)return;
+  armKeys(dt);
   if(demo){
     demo.t+=dt/.75;var tgt=demo.steps[demo.i],e=Math.min(1,demo.t),s=e*e*(3-2*e);
     for(var k in tgt)q[k]=demo.from[k]+(tgt[k]-demo.from[k])*s;
