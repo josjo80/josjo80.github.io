@@ -21,7 +21,9 @@ button{font:inherit;cursor:pointer}
 #ident h1{margin:0;font-size:1.35rem;letter-spacing:.04em;font-weight:700}
 #ident p{margin:2px 0 0;font-size:.85rem;color:#b9dcea}
 #prompt{left:50%;bottom:74px;transform:translateX(-50%);padding:10px 18px;border:1px solid #ffb347;color:#ffb347;
-  background:rgba(5,9,20,.8);text-shadow:0 0 8px rgba(255,179,71,.6);white-space:nowrap}
+  background:rgba(5,9,20,.8);text-shadow:0 0 8px rgba(255,179,71,.6);max-width:calc(100vw - 32px);text-align:center}
+#prompt:hover{background:rgba(255,179,71,.14)}
+#ident{max-width:calc(100vw - 40px)}
 #keys{left:20px;bottom:16px;font-size:.8rem;color:#8fb8c8;max-width:60vw}
 #nav{right:16px;top:16px;width:230px;background:rgba(5,9,20,.78);border:1px solid rgba(127,231,255,.45);padding:10px}
 #nav h2{margin:0 0 6px;font-size:.8rem;font-weight:400;color:#b9dcea}
@@ -167,7 +169,7 @@ body[data-w=offduty]{background:#000}
 <div id="hub">
   <canvas id="space" aria-label="Star map. Fly the ship to a world and land to open its page. The list of worlds is also available as buttons."></canvas>
   <div class="hud" id="ident"><h1>Josh Johnson</h1><p>Engineer, builder, writer. Superior, Colorado.</p></div>
-  <div class="hud" id="prompt" hidden></div>
+  <button class="hud" id="prompt" hidden></button>
   <div class="hud" id="keys">Arrow keys or WASD to fly. Enter to land. Or click a world and the ship flies itself.</div>
   <nav class="hud" id="nav" aria-label="Worlds"><h2>Jump straight to a world</h2><ul id="navlist"></ul><p id="tally"></p></nav>
   <div id="brief"><div>
@@ -401,6 +403,8 @@ cv.addEventListener('pointerdown',function(e){
   WORLDS.forEach(function(w){if(Math.hypot(wx-w.x,wy-w.y)<w.r+34)hit=w});
   auto=hit?{x:hit.x,y:hit.y,world:hit}:{x:wx,y:wy,world:null};
 });
+var touch=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+$('#prompt').onclick=function(){if(near)land(near.id)};
 function start(){started=true;$('#brief').hidden=true;cv.focus&&cv.focus()}
 $('#start').onclick=start;
 
@@ -427,7 +431,7 @@ function step(dt){
   rocks.forEach(function(r){r.x+=r.vx*dt;r.y+=r.vy*dt;r.a+=r.s*dt});
   near=null;WORLDS.forEach(function(w){if(Math.hypot(ship.x-w.x,ship.y-w.y)<w.r+80)near=w});
   var p=$('#prompt');
-  if(near&&started){p.hidden=false;p.textContent='Press Enter to land on '+near.name}else p.hidden=true;
+  if(near&&started){var msg=(touch?'Tap here to land on ':'Press Enter or click to land on ')+near.name;if(p.textContent!==msg)p.textContent=msg;p.hidden=false}else p.hidden=true;
 }
 function glow(c,b){g.strokeStyle=c;g.fillStyle=c;g.shadowColor=c;g.shadowBlur=b}
 function draw(t){
